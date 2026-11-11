@@ -4,20 +4,32 @@ using UnityEngine.SceneManagement;
 
 public class RunManager : MonoBehaviour
 {
+    [Header("References")]
     [SerializeField] private FirstPersonController player;
+    [SerializeField] private PlayerScore playerScore;
+
+    [Header("Run Settings")]
     [SerializeField] private float runDuration = 20f;
 
+    private double startTime;
     private double endTime;
     private bool restarting;
 
     public float TimeRemaining { get; private set; }
+    public float CompletionTime { get; private set; }
+    public long SecuredScore { get; private set; }
+
     public bool HasStarted { get; private set; }
     public bool IsDead { get; private set; }
+    public bool HasEscaped { get; private set; }
+
+    public bool HasEnded => IsDead || HasEscaped;
+
     public bool CanCollectTreasure =>
-    HasStarted &&
-    !IsDead &&
-    !restarting &&
-    Time.timeAsDouble < endTime;
+        HasStarted &&
+        !HasEnded &&
+        !restarting &&
+        Time.timeAsDouble < endTime;
 
     private void Awake()
     {
@@ -26,7 +38,6 @@ public class RunManager : MonoBehaviour
 
     private void Update()
     {
-        // This stays active even after the player controller is disabled.
         if (!restarting &&
             Keyboard.current != null &&
             Keyboard.current.rKey.wasPressedThisFrame)
@@ -42,35 +53,71 @@ public class RunManager : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (restarting || IsDead || player == null)
+        if (restarting || HasEnded || player == null)
             return;
 
-        // The controller records movement and jumping in Update.
         if (!HasStarted)
         {
             if (!player.HasStartedMoving)
                 return;
 
             HasStarted = true;
-            endTime = Time.timeAsDouble + runDuration;
+            startTime = Time.timeAsDouble;
+            endTime = startTime + runDuration;
         }
 
-        TimeRemaining = Mathf.Max(
-            0f,
-            (float)(endTime - Time.timeAsDouble)
-        );
+        UpdateRemainingTime();
 
         if (TimeRemaining <= 0f)
             Die();
     }
 
+    public bool TryEscape(PlayerScore escapingPlayer)
+    {
+        if (escapingPlayer == null ||
+            escapingPlayer != playerScore ||
+            !HasStarted ||
+            HasEnded ||
+            restarting)
+        {
+            return false;
+        }
+
+        // Check the actual deadline, not the previous frame's display.
+        UpdateRemainingTime();
+
+        if (TimeRemaining <= 0f)
+        {
+            Die();
+            return false;
+        }
+
+        SecuredScore = playerScore.CurrentScore;
+        CompletionTime = (float)(Time.timeAsDouble - startTime);
+
+        HasEscaped = true;
+        player.enabled = false;
+
+        return true;
+    }
+
+    private void UpdateRemainingTime()
+    {
+        TimeRemaining = Mathf.Max(
+            0f,
+            (float)(endTime - Time.timeAsDouble)
+        );
+    }
+
     private void Die()
     {
+        if (HasEnded)
+            return;
+
         TimeRemaining = 0f;
+        SecuredScore = 0;
         IsDead = true;
 
-        // Stops movement, jumping and mouse look.
-        // Its OnDisable method also releases the cursor.
         player.enabled = false;
     }
 }
