@@ -1756,7 +1756,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RunManager
   player: {fileID: 29138665}
   playerScore: {fileID: 29138668}
-  runDuration: 2
+  runDuration: 20
 --- !u!4 &747470247
 Transform:
   m_ObjectHideFlags: 0
@@ -2596,8 +2596,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 20<size=50%>.000</size>
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 6b765521ac0500645840ea7c1a7e8889, type: 2}
-  m_sharedMaterial: {fileID: -4036993848016982316, guid: 6b765521ac0500645840ea7c1a7e8889, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 268f893e7c6544b44b01b1067f74a682, type: 2}
+  m_sharedMaterial: {fileID: 2658816800370892858, guid: 268f893e7c6544b44b01b1067f74a682, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
