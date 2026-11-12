@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class PlayerScore : MonoBehaviour
@@ -6,6 +7,9 @@ public class PlayerScore : MonoBehaviour
 
     public long CurrentScore { get; private set; }
     public bool HasCollectedCrown { get; private set; }
+
+    // Previous score, multiplier, added value, resulting score.
+    public event Action<long, int, int, long> TreasureCollected;
 
     public bool TryCollectTreasure(int value)
     {
@@ -23,7 +27,16 @@ public class PlayerScore : MonoBehaviour
             return false;
         }
 
+        long previousScore = CurrentScore;
         CurrentScore = CurrentScore * 2 + value;
+
+        TreasureCollected?.Invoke(
+            previousScore,
+            2,
+            value,
+            CurrentScore
+        );
+
         return true;
     }
 
@@ -49,8 +62,17 @@ public class PlayerScore : MonoBehaviour
             return false;
         }
 
+        long previousScore = CurrentScore;
+
         CurrentScore *= 3;
         HasCollectedCrown = true;
+
+        TreasureCollected?.Invoke(
+            previousScore,
+            3,
+            0,
+            CurrentScore
+        );
 
         return true;
     }

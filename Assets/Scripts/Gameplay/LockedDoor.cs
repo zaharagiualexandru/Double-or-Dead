@@ -6,10 +6,19 @@ public class LockedDoor : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private RunManager runManager;
+    [SerializeField] private Transform gateVisual;
     [SerializeField] private GameObject doorBlocker;
     [SerializeField] private GameObject keyRequiredPrompt;
 
+    [Header("Gate Movement")]
+    [SerializeField, Min(0f)] private float liftHeight = 2.7f;
+    [SerializeField, Min(0.01f)] private float openingDuration = 0.3f;
+
     public bool IsOpen { get; private set; }
+
+    private Vector3 closedPosition;
+    private float openingElapsed;
+    private bool isOpening;
 
     private void Awake()
     {
@@ -19,6 +28,9 @@ public class LockedDoor : MonoBehaviour
         body.useGravity = false;
         body.isKinematic = true;
 
+        if (gateVisual != null)
+            closedPosition = gateVisual.localPosition;
+
         ShowPrompt(false);
     }
 
@@ -26,6 +38,32 @@ public class LockedDoor : MonoBehaviour
     {
         if (runManager.HasEnded)
             ShowPrompt(false);
+
+        if (!isOpening)
+            return;
+
+        openingElapsed += Time.deltaTime;
+
+        float progress = Mathf.Clamp01(
+            openingElapsed / Mathf.Max(0.01f, openingDuration)
+        );
+
+        float easedProgress = Mathf.SmoothStep(0f, 1f, progress);
+
+        gateVisual.localPosition = Vector3.Lerp(
+            closedPosition,
+            closedPosition + Vector3.up * liftHeight,
+            easedProgress
+        );
+
+        if (progress >= 1f)
+        {
+            isOpening = false;
+            IsOpen = true;
+
+            // Only the invisible blocker is disabled.
+            doorBlocker.SetActive(false);
+        }
     }
 
     private void OnTriggerEnter(Collider other)
@@ -46,7 +84,10 @@ public class LockedDoor : MonoBehaviour
 
     private void TryOpen(Collider other)
     {
-        if (IsOpen || !runManager.CanCollectTreasure)
+        if (IsOpen || isOpening || !runManager.CanCollectTreasure)
+            return;
+
+        if (gateVisual == null || doorBlocker == null)
             return;
 
         PlayerInventory inventory =
@@ -64,10 +105,8 @@ public class LockedDoor : MonoBehaviour
         if (!inventory.TryUseKey())
             return;
 
-        IsOpen = true;
-
-        // Disables both the visible door and its blocking collider.
-        doorBlocker.SetActive(false);
+        isOpening = true;
+        openingElapsed = 0f;
 
         ShowPrompt(false);
     }

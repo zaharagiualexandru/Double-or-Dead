@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 1436645803204296152}
   - component: {fileID: 2371287472500722128}
   - component: {fileID: 7985830183015832770}
+  - component: {fileID: 3721776039268296585}
   m_Layer: 0
   m_Name: Visual
   m_TagString: Untagged
@@ -90,6 +91,21 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &3721776039268296585
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2756997747053407122}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87848f22e1aba4c40aa60342631f014f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickupIdleAnimation
+  floatHeight: 0.12
+  floatSpeed: 0.8
+  rotationSpeed: 45
 --- !u!1 &3872583434748442783
 GameObject:
   m_ObjectHideFlags: 0
@@ -123,6 +139,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1436645803204296152}
+  - {fileID: 7301043313807594396}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &7382807723039602195
@@ -185,3 +202,55 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a256f10b3dd77ed4e99f4fdf80dea6af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::KeyPickup
+--- !u!1 &6256300274885262435
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7301043313807594396}
+  - component: {fileID: 7988113775056561051}
+  m_Layer: 0
+  m_Name: Ray3D
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7301043313807594396
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6256300274885262435}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 831847627938012182}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7988113775056561051
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6256300274885262435}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73100791997cdac4bac68ef70f28a269, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LootRays3D
+  targetVisual: {fileID: 1436645803204296152}
+  rayMaterial: {fileID: 2100000, guid: 60857008fb707fe4bb4c925bae5e7947, type: 2}
+  rayCount: 10
+  minimumLength: 0.45
+  maximumLength: 1.8
+  maximumWidth: 0.22
+  pulseSpeed: 0.7
+  rotationSpeed: {x: 12, y: 30, z: 8}

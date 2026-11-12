@@ -13,6 +13,12 @@ public class RunHUD : MonoBehaviour
     [SerializeField] private GameObject startPrompt;
     [SerializeField] private GameObject deathText;
 
+    [Header("Timer Warning")]
+    [SerializeField] private Color warningColor = Color.red;
+    [SerializeField, Range(1f, 1.5f)] private float warningScale = 1.2f;
+    private Color normalTimerColor;
+    private Vector3 normalTimerScale;
+
     [Header("Stamina")]
     [SerializeField] private RectTransform staminaFill;
     [SerializeField] private RectTransform staminaTrail;
@@ -28,6 +34,9 @@ public class RunHUD : MonoBehaviour
 
     private void Start()
     {
+        normalTimerColor = timerText.color;
+        normalTimerScale = timerText.rectTransform.localScale;
+
         startPrompt.SetActive(true);
         deathText.SetActive(false);
 
@@ -62,6 +71,7 @@ public class RunHUD : MonoBehaviour
 
         startPrompt.SetActive(!runManager.HasStarted);
         deathText.SetActive(runManager.IsDead);
+        UpdateTimerWarning();
     }
 
     private void UpdateStamina()
@@ -105,5 +115,44 @@ public class RunHUD : MonoBehaviour
             1f,
             1f
         );
+    }
+
+    private void UpdateTimerWarning()
+    {
+        float remaining = runManager.TimeRemaining;
+
+        bool shouldWarn =
+            runManager.HasStarted &&
+            !runManager.IsDead &&
+            !runManager.HasEscaped &&
+            remaining > 0f &&
+            remaining <= 5f;
+
+        if (!shouldWarn)
+        {
+            timerText.color = normalTimerColor;
+            timerText.rectTransform.localScale = normalTimerScale;
+            return;
+        }
+
+        // Starts a new pulse at 5, 4, 3, 2 and 1 seconds.
+        float phase = Mathf.Repeat(5f - remaining, 1f);
+
+        // Strong initial flash, smoothly settling during the first
+        // half of each second.
+        float pulse = 1f - Mathf.SmoothStep(
+            0f,
+            1f,
+            Mathf.Clamp01(phase / 0.5f)
+        );
+
+        timerText.color = Color.Lerp(
+            normalTimerColor,
+            warningColor,
+            pulse
+        );
+
+        timerText.rectTransform.localScale =
+            normalTimerScale * Mathf.Lerp(1f, warningScale, pulse);
     }
 }
