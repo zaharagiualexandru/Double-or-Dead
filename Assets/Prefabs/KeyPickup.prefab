@@ -191,9 +191,9 @@ MonoBehaviour:
   targetVisual: {fileID: 0}
   rayMaterial: {fileID: 2100000, guid: 60857008fb707fe4bb4c925bae5e7947, type: 2}
   rayCount: 10
-  minimumLength: 0.45
-  maximumLength: 1.8
-  maximumWidth: 0.22
+  minimumLength: 0.25
+  maximumLength: 1.5
+  maximumWidth: 0.15
   pulseSpeed: 0.7
   rotationSpeed: {x: 12, y: 30, z: 8}
 --- !u!1001 &3144305953894169643
