@@ -8,7 +8,11 @@ public class PlayerScore : MonoBehaviour
     public long CurrentScore { get; private set; }
     public bool HasCollectedCrown { get; private set; }
 
-    // Previous score, multiplier, added value, resulting score.
+    public int EscapeMultiplier => HasCollectedCrown ? 2 : 1;
+
+    public long EscapeScore => CurrentScore * EscapeMultiplier;
+
+    // Kept compatible with the existing ScoreHUD event.
     public event Action<long, int, int, long> TreasureCollected;
 
     public bool TryCollectTreasure(int value)
@@ -20,31 +24,25 @@ public class PlayerScore : MonoBehaviour
             return false;
         }
 
-        // Prevent extremely long doubling chains from overflowing.
-        if (CurrentScore > (long.MaxValue - value) / 2)
+        // Leave enough room for the crown's escape bonus.
+        if (CurrentScore > long.MaxValue / 2 - value)
         {
             Debug.LogWarning("Score limit reached.", this);
             return false;
         }
 
         long previousScore = CurrentScore;
-        CurrentScore = CurrentScore * 2 + value;
+
+        CurrentScore += value;
 
         TreasureCollected?.Invoke(
             previousScore,
-            2,
+            1,
             value,
             CurrentScore
         );
 
         return true;
-    }
-
-    private void LateUpdate()
-    {
-        // Dying loses the treasure carried during this run.
-        if (runManager != null && runManager.IsDead)
-            CurrentScore = 0;
     }
 
     public bool TryCollectCrown()
@@ -56,24 +54,15 @@ public class PlayerScore : MonoBehaviour
             return false;
         }
 
-        if (CurrentScore > long.MaxValue / 3)
-        {
-            Debug.LogWarning("Score limit reached.", this);
-            return false;
-        }
-
-        long previousScore = CurrentScore;
-
-        CurrentScore *= 3;
+        // The bonus is awarded when escaping.
         HasCollectedCrown = true;
 
-        TreasureCollected?.Invoke(
-            previousScore,
-            3,
-            0,
-            CurrentScore
-        );
-
         return true;
+    }
+
+    private void LateUpdate()
+    {
+        if (runManager != null && runManager.IsDead)
+            CurrentScore = 0;
     }
 }

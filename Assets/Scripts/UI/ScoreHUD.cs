@@ -55,7 +55,11 @@ public class ScoreHUD : MonoBehaviour
 
     private void LateUpdate()
     {
-        long score = playerScore.CurrentScore;
+        long score = runManager.IsDead
+    ? 0
+    : runManager.HasEscaped
+        ? runManager.SecuredScore
+        : playerScore.CurrentScore;
 
         if (score != lastDisplayedScore)
         {
@@ -74,26 +78,16 @@ public class ScoreHUD : MonoBehaviour
     }
 
     private void OnTreasureCollected(
-        long previousScore,
-        int multiplier,
-        int addedValue,
-        long resultingScore)
+    long previousScore,
+    int multiplier,
+    int addedValue,
+    long resultingScore)
     {
         punchRemaining = punchDuration;
         breakdownRemaining = holdDuration + fadeDuration;
 
-        if (addedValue > 0)
-        {
-            breakdownText.text =
-                $"{previousScore:N0} × {multiplier} + " +
-                $"{addedValue:N0} = {resultingScore:N0}";
-        }
-        else
-        {
-            breakdownText.text =
-                $"{previousScore:N0} × {multiplier} = " +
-                $"{resultingScore:N0}";
-        }
+        breakdownText.text =
+            $"+{addedValue:N0}";
 
         breakdownText.color = normalBreakdownColor;
     }

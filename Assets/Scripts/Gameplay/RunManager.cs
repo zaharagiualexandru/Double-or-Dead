@@ -92,7 +92,7 @@ public class RunManager : MonoBehaviour
             return false;
         }
 
-        SecuredScore = playerScore.CurrentScore;
+        SecuredScore = playerScore.EscapeScore;
         CompletionTime = (float)(Time.timeAsDouble - startTime);
 
         HasEscaped = true;
