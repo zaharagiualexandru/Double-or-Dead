@@ -109,7 +109,7 @@ public class RunManager : MonoBehaviour
         );
     }
 
-    private void Die()
+    public void Die()
     {
         if (HasEnded)
             return;
