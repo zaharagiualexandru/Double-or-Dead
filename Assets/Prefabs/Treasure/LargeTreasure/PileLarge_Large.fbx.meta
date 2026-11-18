@@ -3,7 +3,47 @@ guid: 21aed61741eff804c9637386673a4a4e
 ModelImporter:
   serializedVersion: 24300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Amethyst
+    second: {fileID: 2100000, guid: ecb71fbc54385b84d994051e31f1979e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Emerald
+    second: {fileID: 2100000, guid: b0d8ef4861c2a2540897b96db1659899, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Gold
+    second: {fileID: 2100000, guid: 35f0c23c328af7840b9668e6e637bb41, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: GoldLight
+    second: {fileID: 2100000, guid: 7c88b6b09a923b346a40e9eb6ce8a17f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Ruby
+    second: {fileID: 2100000, guid: b3e8fa12083a7394f8ad9bf423dd204c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Sapphire
+    second: {fileID: 2100000, guid: ee5a69843c4833147937da87db67d530, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Silver
+    second: {fileID: 2100000, guid: 27ca50ea111c7a040abd7e7d6769c575, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: SilverDark
+    second: {fileID: 2100000, guid: ed8114f15bbb9494784b9afcc051360d, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

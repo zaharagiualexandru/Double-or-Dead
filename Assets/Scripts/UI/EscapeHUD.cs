@@ -24,8 +24,8 @@ public class EscapeHUD : MonoBehaviour
         escapeText.text =
             "ESCAPED\n" +
             $"<size=50%>Secured loot: {runManager.SecuredScore:N0}\n" +
-            $"Time: {runManager.CompletionTime:F3}s</size>\n" +
-            "<size=40%>Press R to restart</size>";
+            $"Escape time: {runManager.CompletionTime:F3}s</size>\n\n" +
+            "<size=40%>R — Retry\nM — Main Menu</size>";
 
         escapeText.gameObject.SetActive(true);
     }
