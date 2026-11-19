@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,6 +9,9 @@ public class MainMenuController : MonoBehaviour
     [SerializeField] private GameObject optionsPanel;
     [SerializeField] private GameObject howToPlayPanel;
     [SerializeField] private GameObject leaderboardPanel;
+
+    [Header("Player Name")]
+    [SerializeField] private PlayerNameSetup playerNameSetup;
 
     [Header("Transition")]
     [SerializeField] private ScreenFade screenFade;
@@ -48,12 +52,30 @@ public class MainMenuController : MonoBehaviour
         if (IsBusy)
             return;
 
+        if (!PlayerNameSetup.HasValidName)
+        {
+            SwitchPanel(leaderboardPanel, () =>
+            {
+                if (playerNameSetup != null)
+                {
+                    playerNameSetup.ShowNameRequired();
+                }
+                else
+                {
+                    Debug.LogError(
+                        "Assign PlayerNameSetup on MainMenuManager.",
+                        this);
+                }
+            });
+
+            return;
+        }
+
         if (Fade == null)
         {
             Debug.LogError(
                 "Assign ScreenFade on MainMenuManager.",
-                this
-            );
+                this);
 
             return;
         }
@@ -78,21 +100,36 @@ public class MainMenuController : MonoBehaviour
 
     public void ShowLeaderboard()
     {
-        SwitchPanel(leaderboardPanel);
+        SwitchPanel(leaderboardPanel, () =>
+        {
+            if (playerNameSetup != null)
+                playerNameSetup.ShowSavedName();
+        });
     }
 
-    private void SwitchPanel(GameObject panel)
+    private void SwitchPanel(GameObject panel, Action onOpened = null)
     {
-        if (IsBusy || panel.activeSelf)
+        if (IsBusy || panel == null)
             return;
+
+        if (panel.activeSelf)
+        {
+            onOpened?.Invoke();
+            return;
+        }
 
         if (Fade != null)
         {
-            Fade.FadeAndRun(() => SetPanel(panel));
+            Fade.FadeAndRun(() =>
+            {
+                SetPanel(panel);
+                onOpened?.Invoke();
+            });
         }
         else
         {
             SetPanel(panel);
+            onOpened?.Invoke();
         }
     }
 

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -17,6 +18,7 @@ public class RunManager : MonoBehaviour
     private double startTime;
     private double endTime;
     private bool restarting;
+    private bool submissionStarted;
 
     public float TimeRemaining { get; private set; }
     public float CompletionTime { get; private set; }
@@ -25,6 +27,8 @@ public class RunManager : MonoBehaviour
     public bool HasStarted { get; private set; }
     public bool IsDead { get; private set; }
     public bool HasEscaped { get; private set; }
+
+    public string LeaderboardStatus { get; private set; } = "";
 
     public bool HasEnded => IsDead || HasEscaped;
 
@@ -89,11 +93,9 @@ public class RunManager : MonoBehaviour
         restarting = true;
         Time.timeScale = 1f;
 
-        // Stop movement immediately during the outgoing fade.
         if (player != null)
             player.enabled = false;
 
-        // Allows testing the gameplay scene without a fade Canvas.
         if (fade == null)
             SceneManager.LoadSceneAsync(sceneName);
     }
@@ -147,7 +149,68 @@ public class RunManager : MonoBehaviour
         if (player != null)
             player.enabled = false;
 
+        SubmitLeaderboardResult();
+
         return true;
+    }
+
+    private async void SubmitLeaderboardResult()
+    {
+        if (submissionStarted)
+            return;
+
+        submissionStarted = true;
+
+        OnlineLeaderboard leaderboard = OnlineLeaderboard.Instance;
+
+        if (leaderboard == null)
+        {
+            LeaderboardStatus = "Leaderboard unavailable.";
+
+            Debug.LogWarning(
+                "Score not submitted: OnlineLeaderboard is missing. " +
+                "Start testing from the MainMenu scene.");
+
+            return;
+        }
+
+        if (!PlayerNameSetup.HasValidName)
+        {
+            LeaderboardStatus =
+                "Save a name in the Leaderboard menu before your next run.";
+
+            Debug.LogWarning(
+                "Score not submitted: no valid player name is saved.");
+
+            return;
+        }
+
+        // Capture this run's result before starting the upload.
+        long score = SecuredScore;
+        float escapeTime = CompletionTime;
+
+        LeaderboardStatus = "Submitting score...";
+
+        try
+        {
+            await leaderboard.SubmitEscapeAsync(score, escapeTime);
+
+            // This scene may have been unloaded while awaiting the upload.
+            if (this != null)
+                LeaderboardStatus = "Leaderboard updated.";
+
+            Debug.Log(
+                "Leaderboard submission completed. " +
+                "Your best result has been retained.");
+        }
+        catch (Exception exception)
+        {
+            if (this != null)
+                LeaderboardStatus = "Upload failed. Check your connection.";
+
+            Debug.LogWarning(
+                $"Score upload failed: {exception.Message}");
+        }
     }
 
     private void UpdateRemainingTime()
