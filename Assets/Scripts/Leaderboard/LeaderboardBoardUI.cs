@@ -1,7 +1,11 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using Newtonsoft.Json;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
+using Unity.Services.CloudCode;
 using Unity.Services.Leaderboards;
 
 public class LeaderboardBoardUI : MonoBehaviour
@@ -10,6 +14,7 @@ public class LeaderboardBoardUI : MonoBehaviour
     [SerializeField] private Transform entriesParent;
     [SerializeField] private LeaderboardRowUI rowPrefab;
     [SerializeField] private TMP_Text statusText;
+    [SerializeField] private ScrollRect scrollRect;
 
     [Header("Settings")]
     [SerializeField, Range(1, 100)] private int entriesToShow = 100;
@@ -21,6 +26,25 @@ public class LeaderboardBoardUI : MonoBehaviour
     private bool refreshing;
     private int viewVersion;
     private bool showingPreview;
+
+    [Serializable]
+    public class RegisteredNamesResponse
+    {
+        public RegisteredPlayer[] players;
+    }
+
+    [Serializable]
+    public class RegisteredPlayer
+    {
+        public string playerId;
+        public string playerName;
+    }
+
+    private void Awake()
+    {
+        if (scrollRect == null && entriesParent != null)
+            scrollRect = entriesParent.GetComponentInParent<ScrollRect>();
+    }
 
     private void OnEnable()
     {
@@ -41,15 +65,12 @@ public class LeaderboardBoardUI : MonoBehaviour
     private void OnDisable()
     {
         StopAllCoroutines();
-
-        // Ignore responses belonging to an earlier opening of this panel.
         viewVersion++;
         refreshing = false;
     }
 
     private IEnumerator AutoRefresh()
     {
-        // Allow scene objects to finish their Awake methods first.
         yield return null;
 
         while (true)
@@ -71,6 +92,10 @@ public class LeaderboardBoardUI : MonoBehaviour
 
         try
         {
+            if (entriesParent == null || rowPrefab == null)
+                throw new InvalidOperationException(
+                    "Assign Entries Parent and Row Prefab.");
+
             OnlineLeaderboard manager = OnlineLeaderboard.Instance;
 
             if (manager == null)
@@ -86,12 +111,64 @@ public class LeaderboardBoardUI : MonoBehaviour
                 OnlineLeaderboard.LeaderboardId,
                 new GetScoresOptions
                 {
-                    Limit = entriesToShow,
+                    Limit = Mathf.Clamp(entriesToShow, 1, 100),
                     IncludeMetadata = true
                 });
 
             if (!IsCurrentRequest(requestVersion))
                 return;
+
+            var playerIds = new List<string>();
+
+            foreach (var entry in response.Results)
+            {
+                if (!string.IsNullOrEmpty(entry.PlayerId) &&
+                    !playerIds.Contains(entry.PlayerId))
+                {
+                    playerIds.Add(entry.PlayerId);
+                }
+            }
+
+            var names = new Dictionary<string, string>();
+
+            if (playerIds.Count > 0)
+            {
+                var arguments = new Dictionary<string, object>
+                {
+                    {
+                        "playerIdsJson",
+                        JsonConvert.SerializeObject(playerIds)
+                    }
+                };
+
+                var registered =
+                    await CloudCodeService.Instance
+                        .CallEndpointAsync<RegisteredNamesResponse>(
+                            "GetRegisteredNames",
+                            arguments);
+
+                if (!IsCurrentRequest(requestVersion))
+                    return;
+
+                if (registered == null || registered.players == null)
+                    throw new InvalidOperationException(
+                        "The registered-name response was invalid.");
+
+                foreach (var player in registered.players)
+                {
+                    if (player != null &&
+                        !string.IsNullOrEmpty(player.playerId) &&
+                        PlayerNameSetup.IsValidName(player.playerName))
+                    {
+                        names[player.playerId] = player.playerName;
+                    }
+                }
+            }
+
+            // Capture the latest position after network requests finish.
+            float scrollPosition = scrollRect != null
+                ? scrollRect.verticalNormalizedPosition
+                : 1f;
 
             ClearRows();
 
@@ -116,10 +193,19 @@ public class LeaderboardBoardUI : MonoBehaviour
 
                 if (data == null ||
                     data.version != 1 ||
-                    string.IsNullOrEmpty(data.playerName))
+                    data.loot < 0 ||
+                    data.escapeTimeMilliseconds < 0 ||
+                    data.escapeTimeMilliseconds >
+                        OnlineLeaderboard.MaximumTimeMilliseconds)
                 {
                     continue;
                 }
+
+                // Never reuse an old name that another player may now own.
+                string displayName =
+                    names.TryGetValue(entry.PlayerId, out string currentName)
+                        ? currentName
+                        : "Unnamed";
 
                 LeaderboardRowUI row =
                     Instantiate(rowPrefab, entriesParent);
@@ -132,12 +218,21 @@ public class LeaderboardBoardUI : MonoBehaviour
 
                 row.SetEntry(
                     entry.Rank + 1,
-                    data.playerName,
+                    displayName,
                     data.loot,
                     data.escapeTimeMilliseconds,
                     isDeveloper);
 
                 displayed++;
+            }
+
+            Canvas.ForceUpdateCanvases();
+
+            if (scrollRect != null)
+            {
+                scrollRect.StopMovement();
+                scrollRect.verticalNormalizedPosition =
+                    Mathf.Clamp01(scrollPosition);
             }
 
             SetStatus(displayed == 0
@@ -201,9 +296,14 @@ public class LeaderboardBoardUI : MonoBehaviour
             return;
         }
 
+        if (entriesParent == null || rowPrefab == null)
+        {
+            Debug.LogWarning("Assign Entries Parent and Row Prefab.");
+            return;
+        }
+
         StopAllCoroutines();
 
-        // Stop online refreshes without disabling this component.
         showingPreview = true;
         viewVersion++;
         refreshing = false;
@@ -224,6 +324,13 @@ public class LeaderboardBoardUI : MonoBehaviour
         }
 
         Canvas.ForceUpdateCanvases();
+
+        if (scrollRect != null)
+        {
+            scrollRect.StopMovement();
+            scrollRect.verticalNormalizedPosition = 1f;
+        }
+
         SetStatus("TEST PREVIEW — not online scores");
     }
 #endif

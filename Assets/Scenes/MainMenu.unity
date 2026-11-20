@@ -958,6 +958,7 @@ MonoBehaviour:
   entriesParent: {fileID: 692274027}
   rowPrefab: {fileID: 5022254911883691201, guid: c66e453995c935f46b06d1926abc30d7, type: 3}
   statusText: {fileID: 1518388722}
+  scrollRect: {fileID: 605013493}
   entriesToShow: 100
   developerPlayerId: FBrZPRpcbB9Tlxu8Ov4xUWXDOaC1
   previewMode: 0
@@ -1272,6 +1273,7 @@ GameObject:
   - component: {fileID: 392667483}
   - component: {fileID: 392667485}
   - component: {fileID: 392667484}
+  - component: {fileID: 392667486}
   m_Layer: 5
   m_Name: LeaderboardPanel
   m_TagString: Untagged
@@ -1342,6 +1344,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 392667482}
   m_CullTransparentMesh: 1
+--- !u!114 &392667486
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 392667482}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1cddb9b63b68b147a4954ace0e64287, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PersonalBestUI
+  personalBestText: {fileID: 821974477}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -2303,7 +2318,7 @@ GameObject:
   - component: {fileID: 821974478}
   - component: {fileID: 821974477}
   m_Layer: 5
-  m_Name: Heading
+  m_Name: PersonalBestText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2348,7 +2363,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Online leaderboard coming soon.
+  m_text: "YOUR BEST RUN\nRank: \u2014\nLoot: \u2014\nTime: \u2014"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 832cb2688adf1ae4c94f16c069480bdf, type: 2}
   m_sharedMaterial: {fileID: 3798190455814620225, guid: 832cb2688adf1ae4c94f16c069480bdf, type: 2}

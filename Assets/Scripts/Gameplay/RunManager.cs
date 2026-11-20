@@ -15,10 +15,17 @@ public class RunManager : MonoBehaviour
     [Header("Scenes")]
     [SerializeField] private string mainMenuSceneName = "MainMenu";
 
+    public enum UploadState
+    {
+        None,
+        Submitting,
+        Succeeded,
+        Failed
+    }
+
     private double startTime;
     private double endTime;
     private bool restarting;
-    private bool submissionStarted;
 
     public float TimeRemaining { get; private set; }
     public float CompletionTime { get; private set; }
@@ -28,6 +35,7 @@ public class RunManager : MonoBehaviour
     public bool IsDead { get; private set; }
     public bool HasEscaped { get; private set; }
 
+    public UploadState LeaderboardUploadState { get; private set; }
     public string LeaderboardStatus { get; private set; } = "";
 
     public bool HasEnded => IsDead || HasEscaped;
@@ -67,6 +75,10 @@ public class RunManager : MonoBehaviour
         {
             ChangeScene(mainMenuSceneName);
         }
+        else if (HasEscaped && keyboard.uKey.wasPressedThisFrame)
+        {
+            RetryLeaderboardUpload();
+        }
     }
 
     private void ChangeScene(string sceneName)
@@ -76,19 +88,15 @@ public class RunManager : MonoBehaviour
             Debug.LogError(
                 $"Scene '{sceneName}' is not available. " +
                 "Check its name and the build scene list.",
-                this
-            );
+                this);
 
             return;
         }
 
         ScreenFade fade = ScreenFade.Instance;
 
-        if (fade != null)
-        {
-            if (!fade.LoadSceneWithFade(sceneName))
-                return;
-        }
+        if (fade != null && !fade.LoadSceneWithFade(sceneName))
+            return;
 
         restarting = true;
         Time.timeScale = 1f;
@@ -132,7 +140,6 @@ public class RunManager : MonoBehaviour
             return false;
         }
 
-        // Check the actual deadline, not last frame's display.
         UpdateRemainingTime();
 
         if (TimeRemaining <= 0f)
@@ -154,59 +161,65 @@ public class RunManager : MonoBehaviour
         return true;
     }
 
+    public void RetryLeaderboardUpload()
+    {
+        if (!HasEscaped ||
+            restarting ||
+            LeaderboardUploadState != UploadState.Failed)
+        {
+            return;
+        }
+
+        SubmitLeaderboardResult();
+    }
+
     private async void SubmitLeaderboardResult()
     {
-        if (submissionStarted)
-            return;
-
-        submissionStarted = true;
-
-        OnlineLeaderboard leaderboard = OnlineLeaderboard.Instance;
-
-        if (leaderboard == null)
+        if (!HasEscaped ||
+            restarting ||
+            LeaderboardUploadState == UploadState.Submitting ||
+            LeaderboardUploadState == UploadState.Succeeded)
         {
-            LeaderboardStatus = "Leaderboard unavailable.";
-
-            Debug.LogWarning(
-                "Score not submitted: OnlineLeaderboard is missing. " +
-                "Start testing from the MainMenu scene.");
-
             return;
         }
 
-        if (!PlayerNameSetup.HasValidName)
-        {
-            LeaderboardStatus =
-                "Save a name in the Leaderboard menu before your next run.";
+        LeaderboardUploadState = UploadState.Submitting;
+        LeaderboardStatus = "Submitting score...";
 
-            Debug.LogWarning(
-                "Score not submitted: no valid player name is saved.");
-
-            return;
-        }
-
-        // Capture this run's result before starting the upload.
+        // Retries always use the same completed run.
         long score = SecuredScore;
         float escapeTime = CompletionTime;
 
-        LeaderboardStatus = "Submitting score...";
-
         try
         {
+            OnlineLeaderboard leaderboard = OnlineLeaderboard.Instance;
+
+            if (leaderboard == null)
+            {
+                throw new InvalidOperationException(
+                    "OnlineLeaderboard is missing. Start from MainMenu.");
+            }
+
             await leaderboard.SubmitEscapeAsync(score, escapeTime);
 
-            // This scene may have been unloaded while awaiting the upload.
+            // The player may have already left this scene.
             if (this != null)
-                LeaderboardStatus = "Leaderboard updated.";
+            {
+                LeaderboardUploadState = UploadState.Succeeded;
+                LeaderboardStatus =
+                    "Score submitted! Your best score is kept.";
+            }
 
-            Debug.Log(
-                "Leaderboard submission completed. " +
-                "Your best result has been retained.");
+            Debug.Log("Leaderboard submission completed.");
         }
         catch (Exception exception)
         {
             if (this != null)
-                LeaderboardStatus = "Upload failed. Check your connection.";
+            {
+                LeaderboardUploadState = UploadState.Failed;
+                LeaderboardStatus =
+                    "Upload failed — press U to retry.";
+            }
 
             Debug.LogWarning(
                 $"Score upload failed: {exception.Message}");
@@ -217,8 +230,7 @@ public class RunManager : MonoBehaviour
     {
         TimeRemaining = Mathf.Max(
             0f,
-            (float)(endTime - Time.timeAsDouble)
-        );
+            (float)(endTime - Time.timeAsDouble));
     }
 
     public void Die()

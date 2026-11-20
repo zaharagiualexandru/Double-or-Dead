@@ -1,25 +1,24 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 using Unity.Services.Core;
 using Unity.Services.Authentication;
-using Unity.Services.Leaderboards;
+using Unity.Services.CloudCode;
 
 public class OnlineLeaderboard : MonoBehaviour
 {
     public static OnlineLeaderboard Instance { get; private set; }
 
     public const string LeaderboardId = "top_thieves";
-
-    // One extra point of loot always beats any escape-time difference.
     public const long RankingFactor = 20001;
     public const int MaximumTimeMilliseconds = 20000;
 
-    // Keeps the combined ranking value within exact double precision.
     private const long MaximumExactInteger = 9007199254740991L;
 
     private Task initializationTask;
 
+    // Used by LeaderboardBoardUI to read existing score metadata.
     [Serializable]
     public class EntryData
     {
@@ -27,6 +26,13 @@ public class OnlineLeaderboard : MonoBehaviour
         public string playerName;
         public long loot;
         public int escapeTimeMilliseconds;
+    }
+
+    [Serializable]
+    public class SubmitScoreResponse
+    {
+        public bool success;
+        public string message;
     }
 
     [RuntimeInitializeOnLoadMethod(
@@ -53,7 +59,6 @@ public class OnlineLeaderboard : MonoBehaviour
         try
         {
             await EnsureReadyAsync();
-
             Debug.Log("Online leaderboard ready.");
         }
         catch (Exception exception)
@@ -89,18 +94,14 @@ public class OnlineLeaderboard : MonoBehaviour
 
     public async Task SubmitEscapeAsync(long loot, float escapeSeconds)
     {
-        if (!PlayerNameSetup.HasValidName)
-        {
-            throw new InvalidOperationException(
-                "Save a player name in the Leaderboard menu first.");
-        }
-
         if (float.IsNaN(escapeSeconds) ||
             float.IsInfinity(escapeSeconds) ||
             escapeSeconds < 0f ||
             escapeSeconds >= 20f)
         {
-            throw new ArgumentOutOfRangeException(nameof(escapeSeconds));
+            throw new ArgumentOutOfRangeException(
+                nameof(escapeSeconds),
+                "Escape time must be below 20 seconds.");
         }
 
         long maximumLoot =
@@ -115,26 +116,48 @@ public class OnlineLeaderboard : MonoBehaviour
             escapeSeconds * 1000d,
             MidpointRounding.AwayFromZero);
 
-        var data = new EntryData
-        {
-            playerName = PlayerNameSetup.SavedName,
-            loot = loot,
-            escapeTimeMilliseconds = milliseconds
-        };
-
-        long rankingValue =
-            loot * RankingFactor +
-            (MaximumTimeMilliseconds - milliseconds);
-
         await EnsureReadyAsync();
 
-        await LeaderboardsService.Instance.AddPlayerScoreAsync(
-            LeaderboardId,
-            rankingValue,
-            new AddPlayerScoreOptions
-            {
-                Metadata = data
-            });
+        if (!PlayerNameSetup.HasValidName)
+        {
+            throw new InvalidOperationException(
+                "Confirm your name online in the Leaderboard menu first.");
+        }
+
+        string submittingPlayerId =
+            AuthenticationService.Instance.PlayerId;
+
+        var arguments = new Dictionary<string, object>
+        {
+            { "loot", loot },
+            { "escapeTimeMilliseconds", milliseconds }
+        };
+
+        SubmitScoreResponse response =
+            await CloudCodeService.Instance
+                .CallEndpointAsync<SubmitScoreResponse>(
+                    "SubmitEscapeScore",
+                    arguments);
+
+        if (!AuthenticationService.Instance.IsSignedIn ||
+            AuthenticationService.Instance.PlayerId != submittingPlayerId)
+        {
+            throw new InvalidOperationException(
+                "The signed-in player changed during submission.");
+        }
+
+        if (response == null || !response.success)
+        {
+            throw new InvalidOperationException(
+                response != null &&
+                !string.IsNullOrWhiteSpace(response.message)
+                    ? response.message
+                    : "The server did not confirm score submission.");
+        }
+
+        Debug.Log(
+            "Cloud Code accepted the score submission. " +
+            "The leaderboard keeps your best score.");
     }
 
     private void OnDestroy()

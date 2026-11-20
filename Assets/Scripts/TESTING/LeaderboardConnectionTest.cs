@@ -1,41 +1,101 @@
 using System;
+using Newtonsoft.Json;
 using UnityEngine;
-using Unity.Services.Core;
-using Unity.Services.Authentication;
 using Unity.Services.Leaderboards;
 
 public class LeaderboardConnectionTest : MonoBehaviour
 {
-    private async void Start()
+#if UNITY_EDITOR
+    private bool testing;
+
+    [ContextMenu("Test Direct Score Write")]
+    private async void TestDirectScoreWrite()
     {
+        if (!Application.isPlaying)
+        {
+            Debug.LogWarning("Enter Play Mode from MainMenu first.");
+            return;
+        }
+
+        if (testing)
+            return;
+
+        testing = true;
+
         try
         {
-            Debug.Log("Connecting to leaderboard...");
+            OnlineLeaderboard manager = OnlineLeaderboard.Instance;
 
-            await UnityServices.InitializeAsync();
+            if (manager == null)
+                throw new InvalidOperationException(
+                    "OnlineLeaderboard is missing. Start from MainMenu.");
 
-            if (!AuthenticationService.Instance.IsSignedIn)
+            await manager.EnsureReadyAsync();
+
+            var existing = await LeaderboardsService.Instance
+                .GetPlayerScoreAsync(
+                    OnlineLeaderboard.LeaderboardId,
+                    new GetPlayerScoreOptions
+                    {
+                        IncludeMetadata = true
+                    });
+
+            if (existing == null ||
+                string.IsNullOrEmpty(existing.Metadata))
             {
-                await AuthenticationService.Instance.SignInAnonymouslyAsync();
+                Debug.LogWarning(
+                    "Test cancelled: this player needs an existing " +
+                    "score with metadata.");
+                return;
             }
 
-            Debug.Log("Player signed in successfully.");
+            object metadata =
+                JsonConvert.DeserializeObject<object>(existing.Metadata);
 
-            var response = await LeaderboardsService.Instance.GetScoresAsync(
-                "top_thieves",
-                new GetScoresOptions
-                {
-                    Limit = 10,
-                    IncludeMetadata = true
-                });
+            if (metadata == null)
+            {
+                Debug.LogWarning("Test cancelled: metadata is empty.");
+                return;
+            }
 
             Debug.Log(
-                $"Leaderboard connected! Retrieved {response.Results.Count} entries.");
+                "Existing score loaded. Attempting a DIRECT write. " +
+                "Expected result: Forbidden / access denied.");
+
+            try
+            {
+                await LeaderboardsService.Instance.AddPlayerScoreAsync(
+                    OnlineLeaderboard.LeaderboardId,
+                    existing.Score,
+                    new AddPlayerScoreOptions
+                    {
+                        Metadata = metadata
+                    });
+
+                Debug.LogError(
+                    "TEST FAILED: the direct write was accepted. " +
+                    "Check the deployed access-control rule.");
+            }
+            catch (Exception exception)
+            {
+                // A network failure is not proof of access control.
+                // Inspect the actual error for Forbidden / authorization denial.
+                Debug.LogWarning(
+                    "Direct write returned an error. " +
+                    "Confirm it says Forbidden or access denied:\n" +
+                    exception);
+            }
         }
         catch (Exception exception)
         {
-            Debug.LogError(
-                $"Leaderboard connection failed:\n{exception}");
+            Debug.LogWarning(
+                "Test could not reach the direct-write step:\n" +
+                exception);
+        }
+        finally
+        {
+            testing = false;
         }
     }
+#endif
 }
