@@ -77,7 +77,10 @@ public class FirstPersonController : MonoBehaviour
 
     private void Look(Mouse mouse)
     {
-        Vector2 mouseDelta = mouse.delta.ReadValue() * mouseSensitivity;
+        Vector2 mouseDelta =
+            mouse.delta.ReadValue() *
+            mouseSensitivity *
+            GameSettingsManager.MouseSensitivityMultiplier;
 
         transform.Rotate(Vector3.up * mouseDelta.x);
 
