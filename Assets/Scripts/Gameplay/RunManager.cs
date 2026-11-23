@@ -26,6 +26,7 @@ public class RunManager : MonoBehaviour
     private double startTime;
     private double endTime;
     private bool restarting;
+    private int lastCountdownSecond = -1;
 
     public float TimeRemaining { get; private set; }
     public float CompletionTime { get; private set; }
@@ -99,6 +100,10 @@ public class RunManager : MonoBehaviour
             return;
 
         restarting = true;
+
+        if (GameAudio.Instance != null)
+            GameAudio.Instance.StopCountdown();
+
         Time.timeScale = 1f;
 
         if (player != null)
@@ -126,7 +131,22 @@ public class RunManager : MonoBehaviour
         UpdateRemainingTime();
 
         if (TimeRemaining <= 0f)
+        {
             Die();
+            return;
+        }
+
+        int secondsRemaining = Mathf.CeilToInt(TimeRemaining);
+
+        if (secondsRemaining >= 1 &&
+            secondsRemaining <= 5 &&
+            secondsRemaining != lastCountdownSecond)
+        {
+            lastCountdownSecond = secondsRemaining;
+
+            if (GameAudio.Instance != null)
+                GameAudio.Instance.PlayCountdown();
+        }
     }
 
     public bool TryEscape(PlayerScore escapingPlayer)
@@ -152,6 +172,9 @@ public class RunManager : MonoBehaviour
         CompletionTime = (float)(Time.timeAsDouble - startTime);
 
         HasEscaped = true;
+
+        if (GameAudio.Instance != null)
+            GameAudio.Instance.PlayEscape();
 
         if (player != null)
             player.enabled = false;
@@ -241,6 +264,9 @@ public class RunManager : MonoBehaviour
         TimeRemaining = 0f;
         SecuredScore = 0;
         IsDead = true;
+
+        if (GameAudio.Instance != null)
+            GameAudio.Instance.PlayDeath();
 
         if (player != null)
             player.enabled = false;

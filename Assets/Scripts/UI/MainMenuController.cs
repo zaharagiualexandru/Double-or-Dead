@@ -19,6 +19,9 @@ public class MainMenuController : MonoBehaviour
     [Header("Options")]
     [SerializeField] private Toggle fullscreenToggle;
 
+    [Header("Desktop Controls")]
+    [SerializeField] private GameObject exitGameButton;
+
     [Header("Gameplay")]
     [SerializeField] private string gameplaySceneName = "SampleScene";
 
@@ -35,16 +38,26 @@ public class MainMenuController : MonoBehaviour
     private void Awake()
     {
         Time.timeScale = 1f;
-
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        SetPanel(homePanel);
+#if UNITY_WEBGL && !UNITY_EDITOR
+        if (exitGameButton != null)
+            exitGameButton.SetActive(false);
+#endif
 
         if (fullscreenToggle != null)
         {
-            fullscreenToggle.SetIsOnWithoutNotify(Screen.fullScreen);
+            fullscreenToggle.gameObject.SetActive(true);
+
+            bool fullscreen = GameSettingsManager.Instance != null
+                ? GameSettingsManager.Instance.Fullscreen
+                : Screen.fullScreen;
+
+            fullscreenToggle.SetIsOnWithoutNotify(fullscreen);
         }
+
+        SetPanel(homePanel);
     }
 
     public void Play()
@@ -76,7 +89,6 @@ public class MainMenuController : MonoBehaviour
             Debug.LogError(
                 "Assign ScreenFade on MainMenuManager.",
                 this);
-
             return;
         }
 
@@ -146,13 +158,16 @@ public class MainMenuController : MonoBehaviour
         if (IsBusy)
             return;
 
-        Screen.fullScreenMode = enabled
-            ? FullScreenMode.FullScreenWindow
-            : FullScreenMode.Windowed;
+        // Keep this method compatible with existing button events.
+        if (GameSettingsManager.Instance != null)
+            GameSettingsManager.Instance.SetFullscreen(enabled);
     }
 
     public void QuitGame()
     {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        return;
+#else
         if (IsBusy)
             return;
 
@@ -160,6 +175,7 @@ public class MainMenuController : MonoBehaviour
         UnityEditor.EditorApplication.isPlaying = false;
 #else
         Application.Quit();
+#endif
 #endif
     }
 }

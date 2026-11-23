@@ -19,7 +19,21 @@ public class GameSettingsManager : MonoBehaviour
     public float MasterVolume { get; private set; } = 1f;
     public float MusicVolume { get; private set; } = 1f;
     public float SfxVolume { get; private set; } = 1f;
-    public bool Fullscreen { get; private set; } = true;
+
+    private bool savedFullscreen = true;
+
+    public bool Fullscreen
+    {
+        get
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // Reflect browser changes, including leaving with Escape.
+            return Screen.fullScreen;
+#else
+            return savedFullscreen;
+#endif
+        }
+    }
 
     public static float MouseSensitivityMultiplier =>
         Instance != null ? Instance.Sensitivity : 1f;
@@ -43,7 +57,7 @@ public class GameSettingsManager : MonoBehaviour
         MasterVolume = ReadFloat(MasterKey, 1f, 0f, 1f);
         MusicVolume = ReadFloat(MusicKey, 1f, 0f, 1f);
         SfxVolume = ReadFloat(SfxKey, 1f, 0f, 1f);
-        Fullscreen = PlayerPrefs.GetInt(FullscreenKey, 1) == 1;
+        savedFullscreen = PlayerPrefs.GetInt(FullscreenKey, 1) == 1;
     }
 
     private void Start()
@@ -53,7 +67,7 @@ public class GameSettingsManager : MonoBehaviour
 
         started = true;
         ApplyAudio();
-        ApplyFullscreen();
+        ApplyDesktopFullscreen();
     }
 
     private void Update()
@@ -91,9 +105,15 @@ public class GameSettingsManager : MonoBehaviour
 
     public void SetFullscreen(bool value)
     {
-        Fullscreen = value;
-        ApplyFullscreen();
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // Called by the player's fullscreen control.
+        // Do not save or automatically restore browser fullscreen.
+        Screen.fullScreen = value;
+#else
+        savedFullscreen = value;
+        ApplyDesktopFullscreen();
         QueueSave();
+#endif
     }
 
     public void ResetToDefaults()
@@ -102,11 +122,13 @@ public class GameSettingsManager : MonoBehaviour
         MasterVolume = 1f;
         MusicVolume = 1f;
         SfxVolume = 1f;
-        Fullscreen = true;
+
+#if !UNITY_WEBGL || UNITY_EDITOR
+        savedFullscreen = true;
+        ApplyDesktopFullscreen();
+#endif
 
         ApplyAudio();
-        ApplyFullscreen();
-
         QueueSave();
         SaveNow();
     }
@@ -137,14 +159,15 @@ public class GameSettingsManager : MonoBehaviour
         if (!audioMixer.SetFloat(parameter, decibels))
         {
             Debug.LogError(
-                $"Audio Mixer parameter '{parameter}' was not found.", this);
+                $"Audio Mixer parameter '{parameter}' was not found.",
+                this);
         }
     }
 
-    private void ApplyFullscreen()
+    private void ApplyDesktopFullscreen()
     {
-#if !UNITY_EDITOR
-        Screen.fullScreenMode = Fullscreen
+#if !UNITY_EDITOR && !UNITY_WEBGL
+        Screen.fullScreenMode = savedFullscreen
             ? FullScreenMode.FullScreenWindow
             : FullScreenMode.Windowed;
 #endif
@@ -156,7 +179,10 @@ public class GameSettingsManager : MonoBehaviour
         PlayerPrefs.SetFloat(MasterKey, MasterVolume);
         PlayerPrefs.SetFloat(MusicKey, MusicVolume);
         PlayerPrefs.SetFloat(SfxKey, SfxVolume);
-        PlayerPrefs.SetInt(FullscreenKey, Fullscreen ? 1 : 0);
+
+#if !UNITY_WEBGL || UNITY_EDITOR
+        PlayerPrefs.SetInt(FullscreenKey, savedFullscreen ? 1 : 0);
+#endif
 
         savePending = true;
         saveAt = Time.unscaledTime + 0.5f;

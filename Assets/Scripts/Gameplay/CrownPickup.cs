@@ -37,6 +37,10 @@ public class CrownPickup : MonoBehaviour
             return;
 
         collected = true;
+
+        if (GameAudio.Instance != null)
+            GameAudio.Instance.PlayCrown();
+
         gameObject.SetActive(false);
     }
 }

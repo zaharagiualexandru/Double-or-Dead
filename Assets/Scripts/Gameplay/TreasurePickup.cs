@@ -26,8 +26,7 @@ public class TreasurePickup : MonoBehaviour
 
     private void OnTriggerStay(Collider other)
     {
-        // Allows collection if the player was already overlapping
-        // when the run became active.
+        // Allows collection if already overlapping when the run starts.
         TryCollect(other);
     }
 
@@ -39,13 +38,17 @@ public class TreasurePickup : MonoBehaviour
         PlayerScore playerScore =
             other.GetComponentInParent<PlayerScore>();
 
-        if (playerScore == null)
+        if (playerScore == null ||
+            !playerScore.TryCollectTreasure(value))
+        {
             return;
-
-        if (!playerScore.TryCollectTreasure(value))
-            return;
+        }
 
         collected = true;
+
+        if (GameAudio.Instance != null)
+            GameAudio.Instance.PlayTreasure();
+
         gameObject.SetActive(false);
     }
 }

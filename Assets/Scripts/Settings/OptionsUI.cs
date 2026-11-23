@@ -29,6 +29,9 @@ public class OptionsUI : MonoBehaviour
         ConfigureSlider(masterVolumeSlider, 0f, 1f);
         ConfigureSlider(musicVolumeSlider, 0f, 1f);
         ConfigureSlider(sfxVolumeSlider, 0f, 1f);
+
+        if (fullscreenToggle != null)
+            fullscreenToggle.gameObject.SetActive(true);
     }
 
     private void OnEnable()
@@ -37,8 +40,10 @@ public class OptionsUI : MonoBehaviour
         masterVolumeSlider.onValueChanged.AddListener(ChangeMasterVolume);
         musicVolumeSlider.onValueChanged.AddListener(ChangeMusicVolume);
         sfxVolumeSlider.onValueChanged.AddListener(ChangeSfxVolume);
-        fullscreenToggle.onValueChanged.AddListener(ChangeFullscreen);
         resetDefaultsButton.onClick.AddListener(ResetDefaults);
+
+        if (fullscreenToggle != null)
+            fullscreenToggle.onValueChanged.AddListener(ChangeFullscreen);
 
         RefreshControls();
     }
@@ -55,14 +60,24 @@ public class OptionsUI : MonoBehaviour
         RefreshControls();
     }
 
+    private void LateUpdate()
+    {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        if (fullscreenToggle != null)
+            fullscreenToggle.SetIsOnWithoutNotify(Screen.fullScreen);
+#endif
+    }
+
     private void OnDisable()
     {
         sensitivitySlider.onValueChanged.RemoveListener(ChangeSensitivity);
         masterVolumeSlider.onValueChanged.RemoveListener(ChangeMasterVolume);
         musicVolumeSlider.onValueChanged.RemoveListener(ChangeMusicVolume);
         sfxVolumeSlider.onValueChanged.RemoveListener(ChangeSfxVolume);
-        fullscreenToggle.onValueChanged.RemoveListener(ChangeFullscreen);
         resetDefaultsButton.onClick.RemoveListener(ResetDefaults);
+
+        if (fullscreenToggle != null)
+            fullscreenToggle.onValueChanged.RemoveListener(ChangeFullscreen);
 
         if (Settings != null)
             Settings.SaveNow();
@@ -77,7 +92,9 @@ public class OptionsUI : MonoBehaviour
         masterVolumeSlider.SetValueWithoutNotify(Settings.MasterVolume);
         musicVolumeSlider.SetValueWithoutNotify(Settings.MusicVolume);
         sfxVolumeSlider.SetValueWithoutNotify(Settings.SfxVolume);
-        fullscreenToggle.SetIsOnWithoutNotify(Settings.Fullscreen);
+
+        if (fullscreenToggle != null)
+            fullscreenToggle.SetIsOnWithoutNotify(Settings.Fullscreen);
 
         sensitivityValue.text = $"{Settings.Sensitivity:F2}x";
         masterVolumeValue.text = Percentage(Settings.MasterVolume);

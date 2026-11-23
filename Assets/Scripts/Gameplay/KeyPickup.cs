@@ -37,6 +37,10 @@ public class KeyPickup : MonoBehaviour
             return;
 
         collected = true;
+
+        if (GameAudio.Instance != null)
+            GameAudio.Instance.PlayKey();
+
         gameObject.SetActive(false);
     }
 }

@@ -133,6 +133,8 @@ public class PlayerNameSetup : MonoBehaviour
 
         if (!IsValidName(chosenName))
         {
+            PlayNameFeedback(false);
+
             SetMessage(
                 "Use 1–8 letters or numbers.",
                 new Color32(255, 100, 100, 255));
@@ -151,8 +153,10 @@ public class PlayerNameSetup : MonoBehaviour
             OnlineLeaderboard manager = OnlineLeaderboard.Instance;
 
             if (manager == null)
+            {
                 throw new InvalidOperationException(
                     "OnlineLeaderboard is missing from the scene.");
+            }
 
             await manager.EnsureReadyAsync();
 
@@ -178,13 +182,17 @@ public class PlayerNameSetup : MonoBehaviour
             }
 
             if (response == null)
+            {
                 throw new InvalidOperationException(
                     "Name registration returned an empty response.");
+            }
 
             if (!response.success)
             {
                 if (this != null)
                 {
+                    PlayNameFeedback(false);
+
                     SetMessage(
                         string.IsNullOrWhiteSpace(response.message)
                             ? "Couldn't save that name. Please try again."
@@ -216,12 +224,16 @@ public class PlayerNameSetup : MonoBehaviour
                 SetMessage(
                     "Name saved! Go Back to play.",
                     new Color32(130, 230, 140, 255));
+
+                PlayNameFeedback(true);
             }
         }
         catch (Exception exception)
         {
             if (this != null)
             {
+                PlayNameFeedback(false);
+
                 SetMessage(
                     "Couldn't save name online. Please try again.",
                     new Color32(255, 100, 100, 255));
@@ -237,6 +249,23 @@ public class PlayerNameSetup : MonoBehaviour
             if (this != null)
                 SetControlsEnabled(true);
         }
+    }
+
+    private void PlayNameFeedback(bool accepted)
+    {
+        // Ignore delayed feedback after the name panel has been closed.
+        if (this == null ||
+            nameInput == null ||
+            !nameInput.gameObject.activeInHierarchy ||
+            GameAudio.Instance == null)
+        {
+            return;
+        }
+
+        if (accepted)
+            GameAudio.Instance.PlayNameAccepted();
+        else
+            GameAudio.Instance.PlayNameRejected();
     }
 
     private void SetControlsEnabled(bool enabled)

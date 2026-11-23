@@ -32,6 +32,18 @@ public class LockedDoor : MonoBehaviour
             closedPosition = gateVisual.localPosition;
 
         ShowPrompt(false);
+
+        if (runManager == null ||
+            gateVisual == null ||
+            doorBlocker == null)
+        {
+            Debug.LogError(
+                "Assign Run Manager, Gate Visual and Door Blocker " +
+                "on LockedDoor.",
+                this);
+
+            enabled = false;
+        }
     }
 
     private void Update()
@@ -45,23 +57,21 @@ public class LockedDoor : MonoBehaviour
         openingElapsed += Time.deltaTime;
 
         float progress = Mathf.Clamp01(
-            openingElapsed / Mathf.Max(0.01f, openingDuration)
-        );
+            openingElapsed / Mathf.Max(0.01f, openingDuration));
 
         float easedProgress = Mathf.SmoothStep(0f, 1f, progress);
 
         gateVisual.localPosition = Vector3.Lerp(
             closedPosition,
             closedPosition + Vector3.up * liftHeight,
-            easedProgress
-        );
+            easedProgress);
 
         if (progress >= 1f)
         {
             isOpening = false;
             IsOpen = true;
 
-            // Only the invisible blocker is disabled.
+            // Keep the gate object active; remove only the blocker.
             doorBlocker.SetActive(false);
         }
     }
@@ -84,8 +94,14 @@ public class LockedDoor : MonoBehaviour
 
     private void TryOpen(Collider other)
     {
-        if (IsOpen || isOpening || !runManager.CanCollectTreasure)
+        if (!isActiveAndEnabled ||
+            runManager == null ||
+            IsOpen ||
+            isOpening ||
+            !runManager.CanCollectTreasure)
+        {
             return;
+        }
 
         if (gateVisual == null || doorBlocker == null)
             return;
@@ -109,6 +125,9 @@ public class LockedDoor : MonoBehaviour
         openingElapsed = 0f;
 
         ShowPrompt(false);
+
+        if (GameAudio.Instance != null)
+            GameAudio.Instance.PlayDoor();
     }
 
     private void ShowPrompt(bool visible)
